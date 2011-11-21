@@ -1,0 +1,10 @@
+<package>
+  <description brief="converts tilting scans into pointclouds">
+      this will convert the results of a tilting scanner into pointclouds and distance_images.
+  </description>
+  <author>Jakob Schwendner</author>
+
+  <depend package="base/types" />
+  <depend package="slam/envire" />
+  <depend package="drivers/transformer" />
+</package>

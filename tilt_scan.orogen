@@ -1,8 +1,6 @@
 name "tilt_scan"
 
 using_library 'envire'
-using_library 'asguard'
-
 import_types_from 'base'
 
 task_context "Task" do
@@ -25,6 +23,7 @@ task_context "Task" do
     end
 
     port_driven
+    needs_configuration
 end
 
 # Declares a deployment, i.e. an actual executable that contains various tasks.

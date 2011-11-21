@@ -58,18 +58,19 @@ void Task::scan_samplesTransformerCallback(const base::Time &ts, const ::base::s
 	smOp->updateAll();
 
 	// add to merge operator
-	mergeOp->addOutput( laserPc );
+	mergeOp->addInput( laserPc );
     }
     else
     {
 	if( scanFrame )
 	{
 	    // if the number of scans in the frame is enough, keep and store it
-	    size_t numScans = env->getOutputs( mergeOp.get() ).size();
+	    size_t numScans = env->getInputs( mergeOp.get() ).size();
 
 	    size_t numScansThreshold = 100;
 	    if( numScans > numScansThreshold )
 	    {
+		std::cout << "lines in scan: " << numScans << std::endl;
 		mergeOp->updateAll();
 		// TODO reproject pointcloud into distance frame and write to
 		// output port if connected
@@ -94,6 +95,9 @@ void Task::scan_samplesTransformerCallback(const base::Time &ts, const ::base::s
 	mergeOp = new MergePointcloud();
 	env->attachItem( mergeOp.get() );
 	mergeOp->addOutput( pc );
+
+	// set the current scan_frame for the threshold
+	scan_body2odometry = body2odometry;
     }
 }
 
@@ -105,9 +109,9 @@ bool Task::configureHook()
 {
     if (! TaskBase::configureHook())
         return false;
-    return true;
 
     env = new envire::Environment();
+    return true;
 }
 // bool Task::startHook()
 // {
