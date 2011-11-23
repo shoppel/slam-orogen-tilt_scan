@@ -56,6 +56,10 @@ void Task::scan_samplesTransformerCallback(const base::Time &ts, const ::base::s
 	smOp->addInput( scanNode );
 	smOp->addOutput( laserPc );
 	smOp->updateAll();
+	
+	// detach input nodes
+	smOp->detach();
+	scanNode->detach();
 
 	// add to merge operator
 	mergeOp->addInput( laserPc );
@@ -77,9 +81,22 @@ void Task::scan_samplesTransformerCallback(const base::Time &ts, const ::base::s
 	    }
 	    else
 	    {
-		// TODO remove whole tree of scanframe 
-		env->detachItem( scanFrame.get() );
+		env->detachItem( scanFrame.get(), true );
+		// TODO remove individual scanlines
 	    }
+
+	    // detach all the other connections
+	    std::list<Layer*> lines = env->getInputs( mergeOp.get() );
+	    for( std::list<Layer*>::iterator it = lines.begin(); it != lines.end(); it++ )
+	    {
+		CartesianMap* map = dynamic_cast<CartesianMap*>( *it );
+		if( map )
+		{
+		    map->getFrameNode()->detach();
+		    map->detach();
+		}
+	    }
+	    mergeOp->detach();
 	}
 
 	// set-up new structure
