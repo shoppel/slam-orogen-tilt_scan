@@ -13,7 +13,13 @@ namespace tilt_scan {
 	friend class TaskBase;
     protected:
 
+        virtual void left_frame_inTransformerCallback(const base::Time &ts, const ::base::samples::frame::Frame &left_frame_in_sample);
+        virtual void right_frame_inTransformerCallback(const base::Time &ts, const ::base::samples::frame::Frame &right_frame_in_sample);
         virtual void scan_samplesTransformerCallback(const base::Time &ts, const ::base::samples::LaserScan &scan_samples_sample);
+
+	base::samples::frame::Frame leftFrame, rightFrame;
+	base::Affine3d best_lcamera2body;
+	double best_angle;
 
 	Eigen::Affine3d scan_body2odometry;
 	envire::Environment *env;
