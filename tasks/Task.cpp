@@ -239,8 +239,7 @@ void Task::cleanupHook()
     // write environment, if path is given
     if( !_environment_debug_path.value().empty() )
     {
-	envire::Serialization so;
-	so.serialize(env, _environment_debug_path.value() );
+	env->serialize(_environment_debug_path.value() );
     }
 
     delete env;
