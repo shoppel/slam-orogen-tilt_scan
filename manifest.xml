@@ -6,7 +6,5 @@
 
   <depend package="base/types" />
   <depend package="slam/envire" />
-  <depend package="image_processing/frame_helper" />
-  <depend package="image_processing/stereo" />
-  <depend package="drivers/orogen/transformer" />
+  <depend package="drivers/transformer" />
 </package>

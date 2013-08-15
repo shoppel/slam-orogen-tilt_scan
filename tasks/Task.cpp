@@ -5,9 +5,6 @@
 #include <envire/maps/TriMesh.hpp>
 #include <envire/operators/ScanMeshing.hpp>
 
-#include <stereo/densestereo.h>
-#include "opencv2/highgui/highgui.hpp"
-
 using namespace tilt_scan;
 using namespace envire;
 
@@ -23,36 +20,6 @@ Task::Task(std::string const& name, RTT::ExecutionEngine* engine)
 
 Task::~Task()
 {
-}
-
-void Task::left_frame_inTransformerCallback(const base::Time &ts, const ::base::samples::frame::Frame &left_frame_in_sample)
-{
-    Eigen::Affine3d lcamera2body;
-    if( !_lcamera2body.get( ts, lcamera2body ) )
-	return;
-
-    double angle = acos( -lcamera2body.linear()(1,1) );
-    if( abs((rightFrame.time - leftFrame.time).toMilliseconds()) > 15 || angle < best_angle )
-    {
-	leftFrame = left_frame_in_sample;
-	best_angle = angle;
-	best_lcamera2body = lcamera2body;
-    }
-}
-
-void Task::right_frame_inTransformerCallback(const base::Time &ts, const ::base::samples::frame::Frame &right_frame_in_sample)
-{
-    Eigen::Affine3d lcamera2body;
-    if( !_lcamera2body.get( ts, lcamera2body ) )
-	return;
-
-    double angle = acos( -lcamera2body.linear()(1,1) );
-    if( abs((rightFrame.time - leftFrame.time).toMilliseconds()) > 15 || angle < best_angle )
-    {
-	rightFrame = right_frame_in_sample;
-	best_angle = angle;
-	best_lcamera2body = lcamera2body;
-    }
 }
 
 void Task::scan_samplesTransformerCallback(const base::Time &ts, const ::base::samples::LaserScan &scan_samples_sample)
@@ -111,53 +78,6 @@ void Task::scan_samplesTransformerCallback(const base::Time &ts, const ::base::s
 		mergeOp->updateAll();
 		// TODO reproject pointcloud into distance frame and write to
 		// output port if connected
-
-		int time_diff = abs((leftFrame.time - rightFrame.time).toMilliseconds());
-		if( time_diff < 15 )
-		{
-		    std::cout << "has left/right camera image " << leftFrame.time.toString() << std::endl;
-		    _left_frame.write( leftFrame );
-		    _right_frame.write( rightFrame );
-
-		    stereo::DenseStereo dense; 
-		    frame_helper::StereoCalibration calib = 
-			frame_helper::StereoCalibration::fromMatlabFile( _stereo_calibration.get() );
-
-		    dense.setStereoCalibration( calib, 
-			    leftFrame.getWidth(), leftFrame.getHeight() );
-
-		    base::samples::DistanceImage ldistImage, rdistImage;
-		    cv::Mat 
-			ldist = dense.createLeftDistanceImage( ldistImage ),
-			rdist = dense.createRightDistanceImage( rdistImage );
-		    ldistImage.clear();
-		    ldistImage.time = leftFrame.time;
-
-		    rdistImage.clear();
-		    rdistImage.time = leftFrame.time;
-
-		    envire::Pointcloud *points = dynamic_cast<Pointcloud*>( *env->getOutputs( mergeOp.get() ).begin() );
-		    if( points )
-		    {
-			Eigen::Affine3d lcamera2rcamera = calib.extrinsic.getTransform();
-			Eigen::Affine3d body2lcamera = best_lcamera2body.inverse();
-			for( size_t i=0; i<points->vertices.size(); i++ )
-			{
-			    Eigen::Vector3d p = body2lcamera * points->vertices[i];
-			    size_t x, y;
-			    if( ldistImage.getImagePoint( p, x, y ) )
-				ldistImage.data[y*ldistImage.width+x] = p.z();
-
-			    p = lcamera2rcamera * p;
-
-			    if( rdistImage.getImagePoint( p, x, y ) )
-				rdistImage.data[y*rdistImage.width+x] = p.z();
-			}
-
-			_left_distance_frame.write( ldistImage );
-			_right_distance_frame.write( rdistImage );
-		    }
-		}
 	    }
 	    else
 	    {
@@ -195,7 +115,6 @@ void Task::scan_samplesTransformerCallback(const base::Time &ts, const ::base::s
 
 	// set the current scan_frame for the threshold
 	scan_body2odometry = body2odometry;
-	best_angle = 2.0 * M_PI;
     }
 }
 

@@ -1,9 +1,7 @@
 name "tilt_scan"
 
 using_library 'envire'
-using_library 'stereo'
 import_types_from 'base'
-import_types_from 'frame_helper/Calibration.h'
 
 task_context "Task" do
 
@@ -14,26 +12,14 @@ task_context "Task" do
 	needs_reliable_connection.
 	doc 'timestamped laser scans'
 
-    property("stereo_calibration", "/std/string").
-	doc "filename to calibration parameters for stereo camera setup"
-    input_port "left_frame_in", "/base/samples/frame/Frame"
-    input_port "right_frame_in", "/base/samples/frame/Frame"
-    output_port "left_frame", "/base/samples/frame/Frame"
-    output_port "right_frame", "/base/samples/frame/Frame"
-    output_port("left_distance_frame", "/base/samples/DistanceImage")
-    output_port("right_distance_frame", "/base/samples/DistanceImage")
-
     transformer do
 	max_latency( 0.2 )
 
 	transformation("laser", "body")	
 	transformation("lcamera", "body")
-	transformation("rcamera", "body")
 	transformation("body", "odometry")
 
 	align_port("scan_samples", 0.02) 
-	align_port("left_frame_in", 0.2) 
-	align_port("right_frame_in", 0.2) 
     end
 
     port_driven
