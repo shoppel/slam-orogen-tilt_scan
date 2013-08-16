@@ -6,6 +6,7 @@
 #include "tilt_scan/TaskBase.hpp"
 #include <envire/Core.hpp>
 #include <envire/operators/MergePointcloud.hpp>
+#include <boost/shared_ptr.hpp>
 
 namespace tilt_scan {
     class Task : public TaskBase
@@ -16,9 +17,16 @@ namespace tilt_scan {
         virtual void scan_samplesTransformerCallback(const base::Time &ts, const ::base::samples::LaserScan &scan_samples_sample);
 
 	Eigen::Affine3d scan_body2odometry;
-	envire::Environment *env;
+	boost::shared_ptr<envire::Environment> env;
 	envire::FrameNode::Ptr scanFrame;
 	envire::MergePointcloud::Ptr mergeOp;
+	envire::Pointcloud::Ptr targetPointcloud;
+
+	base::Time lastScanTime;
+
+	void addScanLine( const ::base::samples::LaserScan &scan, const Eigen::Affine3d& laser2body );
+	void writePointcloud();
+	void resetEnv( const Eigen::Affine3d& body2odometry );
 
     public:
         Task(std::string const& name = "tilt_scan::Task");
@@ -46,7 +54,7 @@ namespace tilt_scan {
          * stay in Stopped. Otherwise, it goes into Running and updateHook()
          * will be called.
          */
-        // bool startHook();
+        bool startHook();
 
         /** This hook is called by Orocos when the component is in the Running
          * state, at each activity step. Here, the activity gives the "ticks"
@@ -75,7 +83,7 @@ namespace tilt_scan {
         /** This hook is called by Orocos when the state machine transitions
          * from Running to Stopped after stop() has been called.
          */
-        // void stopHook();
+        void stopHook();
 
         /** This hook is called by Orocos when the state machine transitions
          * from Stopped to PreOperational, requiring the call to configureHook()
