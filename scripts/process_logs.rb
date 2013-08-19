@@ -1,8 +1,6 @@
 #! /usr/bin/env ruby
 
-require 'orocos'
-require 'orocos/log'
-require 'asguard'
+require 'rock/bundle'
 require 'vizkit'
 include Orocos
 
@@ -11,38 +9,42 @@ if ARGV.size < 1 then
     exit
 end
 
-BASE_DIR = File.expand_path('..', File.dirname(__FILE__))
-ENV['PKG_CONFIG_PATH'] = "#{BASE_DIR}/build:#{ENV['PKG_CONFIG_PATH']}"
-Orocos.initialize
+Bundles.initialize
 
-# This will kill processes when we quit the block
-Orocos.run 'tilt_scan_test' do |p|
-    tilt_scan = p.task('tilt_scan')
+Bundles.run 'tilt_scan::Task' => 'tilt_scan', 'valgrind' => false  do |p|
+    tilt_scan = Orocos::TaskContext.get('tilt_scan')
+    tilt_scan.laser_frame = "laser_front"
 
-    replay = Orocos::Log::Bundle.open( ARGV[0] )
+    log = Orocos::Log::Replay.open( ARGV[0] )
 
-    replay.log.hokuyo.scans.connect_to( tilt_scan.scan_samples, :type => :buffer, :size => 1000 ) 
-    replay.log.odometry.odometry_samples.connect_to( tilt_scan.dynamic_transformations, :type => :buffer, :size => 1000 )
-    replay.log.dynamixel.lowerDynamixel2UpperDynamixel.connect_to( tilt_scan.dynamic_transformations, :type => :buffer, :size => 1000 )
+    log.hokuyo.scans.connect_to( tilt_scan.scan_samples, :type => :buffer, :size => 1000 ) 
+    log.dynamixel.lowerDynamixel2UpperDynamixel.filter = lambda do |d|
+	d.sourceFrame = "laser_tilt_base_front"
+	d.targetFrame = "laser_tilt_front"
+	d
+    end
 
-    tf = Asguard::Transform.new [:dynamixel]
-    tf.setup_filters replay
+    log.dynamixel.name = "dynamixel_front"
+    ns = Orocos::Local::NameService.new( )
+    ns.register( log.odometry )
+    ns.register( log.dynamixel, 'dynamixel_front' )
+    Orocos.name_service << ns 
+
+    Bundles.transformer.load_conf(Bundles.find_file('config', 'transforms.rb'))
+    Bundles.transformer.setup( tilt_scan )
+
+    log.align( :use_sample_time )
 
     tilt_scan.configure
     tilt_scan.start
-    tf.configure_task tilt_scan
-
-    replay.log.align( :use_sample_time )
 
     tilt_scan.environment_debug_path = "/tmp/env"
 
-    if true then
+    if false then
 	#Orocos.log_all_ports( {:tasks => 'tilt_scan', :log_dir => ARGV[0]} )
-	
-	replay.sync_task tilt_scan, 1.0, "transformer"
-	replay.run
+	Vizkit.run
     else
-	Vizkit.control replay.log
+	Vizkit.control log
 	Vizkit.exec
     end
 
