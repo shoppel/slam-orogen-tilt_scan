@@ -23,6 +23,35 @@ Task::~Task()
 {
 }
 
+void Task::handleSweep()
+{
+    if( _tilt_cmd.connected() )
+    {
+	const base::Time sweep_time = 
+	    base::Time::fromSeconds( 
+		    fabs(config.sweep_angle_max - config.sweep_angle_min) 
+		    / config.sweep_velocity );
+
+	// change of direction is purely open loop
+	if( (last_sweep_change + sweep_time) < base::Time::now() )
+	{
+	    // set position command
+	    base::commands::Joints joints;
+	    joints.names.push_back( config.sweep_servo_name );
+	    base::JointState cmd;
+	    cmd.position = sweep_forward ? 
+		config.sweep_angle_min : config.sweep_angle_max;
+	    cmd.speed = config.sweep_velocity;
+	    joints.elements.push_back( cmd );
+	    _tilt_cmd.write( joints );
+	    
+	    // store current state
+	    sweep_forward = !sweep_forward;
+	    last_sweep_change = base::Time::now();
+	}
+    }
+}
+
 void Task::resetEnv( const Eigen::Affine3d& body2odometry )
 {
     // generate new environment
@@ -121,8 +150,8 @@ void Task::scan_samplesTransformerCallback(const base::Time &ts, const ::base::s
     addScanLine( scan_samples_sample, laser2body );
 
     // test for conditions to stop the current scan
-    size_t numScans = env->getInputs( mergeOp.get() ).size();
-    if( numScans > _config.value().max_lines )
+    int numScans = env->getInputs( mergeOp.get() ).size();
+    if( numScans > config.max_lines )
     {
 	writePointcloud();
 	env = boost::shared_ptr<envire::Environment>();
@@ -141,6 +170,10 @@ bool Task::configureHook()
     if (! TaskBase::configureHook())
         return false;
 
+    // copy configuration 
+    config = _config.value();
+    sweep_forward = true;
+
     return true;
 }
 bool Task::startHook()
@@ -150,10 +183,11 @@ bool Task::startHook()
 
     return true;
 }
-// void Task::updateHook()
-// {
-//     TaskBase::updateHook();
-// }
+void Task::updateHook()
+{
+    handleSweep();
+    TaskBase::updateHook();
+}
 // void Task::errorHook()
 // {
 //     TaskBase::errorHook();

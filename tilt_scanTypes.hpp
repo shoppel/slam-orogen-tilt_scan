@@ -17,6 +17,18 @@ struct Configuration
 
     /** maximum pose change until the vehicle is considered moving */
     base::PoseUpdateThreshold max_pose_change;
+
+    /** minimum angle value to use when sweeping in rad */
+    float sweep_angle_min;
+
+    /** maximum angle to use when sweeping in rad */
+    float sweep_angle_max;
+
+    /** sweep velocity in rad/s */
+    float sweep_velocity;
+
+    /** name of the servo to sweep */
+    std::string sweep_servo_name;
 };
 
 }

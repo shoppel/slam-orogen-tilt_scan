@@ -20,6 +20,9 @@ task_context "Task" do
     output_port('envire_events', ro_ptr('std/vector<envire/BinaryEvent>')).
 	doc 'binary events for the aggregated laser scans'
 
+    output_port('tilt_cmd', 'base/commands/Joints').
+        doc 'output commands for the tilt joint'
+
     transformer do
 	max_latency( 0.2 )
 

@@ -28,6 +28,12 @@ namespace tilt_scan {
 	void writePointcloud();
 	void resetEnv( const Eigen::Affine3d& body2odometry );
 
+	void handleSweep();
+	base::Time last_sweep_change;
+	bool sweep_forward;
+
+	Configuration config;
+
     public:
         Task(std::string const& name = "tilt_scan::Task");
         Task(std::string const& name, RTT::ExecutionEngine* engine);
@@ -70,7 +76,7 @@ namespace tilt_scan {
          * component is stopped and recover() needs to be called before starting
          * it again. Finally, FatalError cannot be recovered.
          */
-        // void updateHook();
+        void updateHook();
 
         /** This hook is called by Orocos when the component is in the
          * RunTimeError state, at each activity step. See the discussion in
