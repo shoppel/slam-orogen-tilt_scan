@@ -5,6 +5,7 @@
 #include <envire/maps/TriMesh.hpp>
 #include <envire/operators/ScanMeshing.hpp>
 #include <orocos/envire/Orocos.hpp>
+#include <base/Logging.hpp>
 
 using namespace tilt_scan;
 using namespace envire;
@@ -23,7 +24,7 @@ Task::~Task()
 {
 }
 
-void Task::handleSweep()
+bool Task::handleSweep()
 {
     if( _tilt_cmd.connected() )
     {
@@ -48,8 +49,12 @@ void Task::handleSweep()
 	    // store current state
 	    sweep_forward = !sweep_forward;
 	    last_sweep_change = base::Time::now();
+
+	    return true;
 	}
     }
+
+    return false;
 }
 
 void Task::resetEnv( const Eigen::Affine3d& body2odometry )
@@ -84,6 +89,7 @@ void Task::addScanLine( const ::base::samples::LaserScan &scan, const Eigen::Aff
     env->addChild( scanFrame.get(), laserFrame );
 
     LaserScan *scanNode = new LaserScan();
+    scanNode->setXForward();
     scanNode->addScanLine( 0, scan );
     env->setFrameNode( scanNode, laserFrame );
 
@@ -108,26 +114,29 @@ void Task::writePointcloud()
 {
     mergeOp->updateAll();
 
+    LOG_DEBUG_S << "got a pointcloud!" << std::endl;
+
+    // generate add-hoc environment that only contains
+    // target pointcloud
+    envire::Environment env;
+    env.attachItem( scanFrame.get() );
+    env.getRootNode()->addChild( scanFrame.get() );
+    env.attachItem( targetPointcloud.get() );
+    targetPointcloud->setFrameNode( scanFrame.get() );
+
     // write environment, if path is given
     if( !_environment_debug_path.value().empty() )
     {
-	env->serialize(_environment_debug_path.value() );
+	LOG_DEBUG_S << "write to " << _environment_debug_path.value() << std::endl;
+	env.serialize(_environment_debug_path.value() );
     }
 
     if( _envire_events.connected() )
     {
 	envire::OrocosEmitter emitter(_envire_events);
 	emitter.setTime( lastScanTime );
-
-	// generate add-hoc environment that only contains
-	// target pointcloud
-	envire::Environment env;
-	env.attachItem( scanFrame.get() );
-	env.getRootNode()->addChild( scanFrame.get() );
-	env.attachItem( targetPointcloud.get() );
-	targetPointcloud->setFrameNode( scanFrame.get() );
-
 	emitter.attach( &env );
+	emitter.flush();
     }
 }
 
@@ -138,24 +147,35 @@ void Task::scan_samplesTransformerCallback(const base::Time &ts, const ::base::s
     // only consider scans of a specific number of lines valid
 
     Eigen::Affine3d body2odometry, laser2body;
-    if( !_body2odometry.get( ts, body2odometry ) || !_laser2body.get( ts, laser2body ) )
+    if( !_body2odometry.get( ts, body2odometry ) || !_laser2body.get( ts, laser2body, true ) )
 	return;
 
-    // setup an environment if there is none
-    if( !env )
-	resetEnv( body2odometry );
+    if( scan_running )
+    {
+	// setup an environment if there is none
+	if( !env )
+	    resetEnv( body2odometry );
 
-    // add the current scan-line
-    // TODO what if the body does move? add the body2odometry transform in a better way
-    addScanLine( scan_samples_sample, laser2body );
+	// add the current scan-line
+	// TODO what if the body does move? add the body2odometry transform in a better way
+	addScanLine( scan_samples_sample, laser2body );
+    }
+
+    if( !scan_running && env )
+    {
+	writePointcloud();
+	env = boost::shared_ptr<envire::Environment>();
+    }
 
     // test for conditions to stop the current scan
+    /*
     int numScans = env->getInputs( mergeOp.get() ).size();
     if( numScans > config.max_lines )
     {
 	writePointcloud();
 	env = boost::shared_ptr<envire::Environment>();
     }
+    */
 
     // TODO test that the robot has not moved depending on configuration
     //if( scanFrame && !_config.value().max_pose_change.test( scan_body2odometry, body2odometry ) )
@@ -173,6 +193,7 @@ bool Task::configureHook()
     // copy configuration 
     config = _config.value();
     sweep_forward = true;
+    scan_running = false;
 
     return true;
 }
@@ -185,7 +206,10 @@ bool Task::startHook()
 }
 void Task::updateHook()
 {
-    handleSweep();
+    if( handleSweep() )
+    {
+	scan_running = sweep_forward;
+    }
     TaskBase::updateHook();
 }
 // void Task::errorHook()

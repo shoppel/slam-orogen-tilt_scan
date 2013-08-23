@@ -28,9 +28,11 @@ namespace tilt_scan {
 	void writePointcloud();
 	void resetEnv( const Eigen::Affine3d& body2odometry );
 
-	void handleSweep();
+	bool handleSweep();
 	base::Time last_sweep_change;
 	bool sweep_forward;
+
+	bool scan_running;
 
 	Configuration config;
 
