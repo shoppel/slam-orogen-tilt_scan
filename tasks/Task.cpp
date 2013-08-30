@@ -138,6 +138,15 @@ void Task::writePointcloud()
 	emitter.attach( &env );
 	emitter.flush();
     }
+
+    if( _pointcloud.connected() )
+    {
+	base::samples::Pointcloud pc;
+	pc.time = lastScanTime;
+	pc.points.resize( targetPointcloud->vertices.size() );
+	std::copy( targetPointcloud->vertices.begin(), targetPointcloud->vertices.end(), pc.points.begin() );
+	_pointcloud.write( pc );
+    }
 }
 
 void Task::scan_samplesTransformerCallback(const base::Time &ts, const ::base::samples::LaserScan &scan_samples_sample)
