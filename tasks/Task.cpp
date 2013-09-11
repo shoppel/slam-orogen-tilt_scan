@@ -97,6 +97,7 @@ void Task::addScanLine( const ::base::samples::LaserScan &scan, const Eigen::Aff
     env->setFrameNode( laserPc, laserFrame );
 
     ScanMeshing *smOp = new ScanMeshing();
+    smOp->setMaxRange( _max_scan_dist.value() );
     env->attachItem( smOp );
     smOp->addInput( scanNode );
     smOp->addOutput( laserPc );

@@ -6,6 +6,8 @@ import_types_from 'envire'
 import_types_from 'tilt_scanTypes.hpp'
 
 task_context "Task" do
+    property('max_scan_dist', 'double', 100).
+	doc 'maximum distance of scans which are considered for the pointcloud. in m'
 
     property('config', 'tilt_scan/Configuration').
 	doc 'configuration of this module'
