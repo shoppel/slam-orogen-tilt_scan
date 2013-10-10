@@ -7,5 +7,5 @@
   <depend package="base/types" />
   <depend package="slam/envire" />
   <depend package="slam/orogen/envire" />
-  <depend package="drivers/transformer" />
+  <depend package="drivers/orogen/transformer" />
 </package>
