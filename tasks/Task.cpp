@@ -6,6 +6,7 @@
 #include <envire/operators/ScanMeshing.hpp>
 #include <orocos/envire/Orocos.hpp>
 #include <base/Logging.hpp>
+#include <base/samples/Joints.hpp>
 
 using namespace tilt_scan;
 using namespace envire;
@@ -28,30 +29,39 @@ bool Task::handleSweep()
 {
     if( _tilt_cmd.connected() )
     {
-	const base::Time sweep_time = 
-	    base::Time::fromSeconds( 
-		    fabs(config.sweep_angle_max - config.sweep_angle_min) 
-		    / config.sweep_velocity );
+        if(!_tilt_status_samples.connected())
+            throw std::runtime_error("Status port of sweep servo not connected");
 
-	// change of direction is purely open loop
-	if( (last_sweep_change + sweep_time) < base::Time::now() )
-	{
-	    // set position command
-	    base::commands::Joints joints;
-	    joints.names.push_back( config.sweep_servo_name );
-	    base::JointState cmd;
-	    cmd.position = sweep_forward ? 
-		config.sweep_angle_min : config.sweep_angle_max;
-	    cmd.speed = config.sweep_velocity;
-	    joints.elements.push_back( cmd );
-	    _tilt_cmd.write( joints );
-	    
-	    // store current state
-	    sweep_forward = !sweep_forward;
-	    last_sweep_change = base::Time::now();
+        base::samples::Joints status;
+        _tilt_status_samples.read(status);
+        
+        base::JointState state = status.getElementByName(config.sweep_servo_name);
+        
+        if(fabs(state.position - config.sweep_angle_max) < 0.01)
+        {
+            base::commands::Joints joints;
+            joints.names.push_back( config.sweep_servo_name );
+            base::JointState cmd;
+            cmd.position = config.sweep_angle_min;
+            cmd.speed = config.sweep_velocity;
+            joints.elements.push_back( cmd );
+            _tilt_cmd.write( joints );
+            sweep_forward = true;
+        }
+        
+        if(fabs(state.position - config.sweep_angle_min) < 0.01)
+        {
+            base::commands::Joints joints;
+            joints.names.push_back( config.sweep_servo_name );
+            base::JointState cmd;
+            cmd.position = config.sweep_angle_max;
+            cmd.speed = config.sweep_velocity;
+            joints.elements.push_back( cmd );
+            _tilt_cmd.write( joints );
+            sweep_forward = false;
+        }
 
-	    return true;
-	}
+        return true;
     }
 
     return false;
@@ -212,6 +222,16 @@ bool Task::startHook()
     if (! TaskBase::startHook())
         return false;
 
+    //drive initially to min angle
+    base::commands::Joints joints;
+    joints.names.push_back( config.sweep_servo_name );
+    base::JointState cmd;
+    cmd.position = config.sweep_angle_min;
+    cmd.speed = config.sweep_velocity;
+    joints.elements.push_back( cmd );
+    _tilt_cmd.write( joints );
+
+    
     return true;
 }
 void Task::updateHook()

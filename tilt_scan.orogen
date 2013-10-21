@@ -28,6 +28,8 @@ task_context "Task" do
     output_port('tilt_cmd', 'base/commands/Joints').
         doc 'output commands for the tilt joint'
 
+    input_port "tilt_status_samples", "base/samples/Joints"
+
     transformer do
 	max_latency( 0.2 )
 
