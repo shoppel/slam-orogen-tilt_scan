@@ -33,7 +33,8 @@ bool Task::handleSweep()
             throw std::runtime_error("Status port of sweep servo not connected");
 
         base::samples::Joints status;
-        _tilt_status_samples.read(status);
+        if(_tilt_status_samples.read(status) != RTT::NewData)
+	  return false;
         
         base::JointState state = status.getElementByName(config.sweep_servo_name);
         
