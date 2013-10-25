@@ -38,7 +38,7 @@ bool Task::handleSweep()
         
 	    base::JointState state = status.getElementByName(config.sweep_servo_name);
         
-	    if(fabs(state.position - config.sweep_angle_max) < 0.01)
+	    if(fabs(state.position - config.sweep_angle_max) < 0.1)
 	    {
 		base::commands::Joints joints;
 		joints.names.push_back( config.sweep_servo_name );
@@ -50,7 +50,7 @@ bool Task::handleSweep()
 		sweep_forward = true;
 	    }
 	    
-	    if(fabs(state.position - config.sweep_angle_min) < 0.01)
+	    if(fabs(state.position - config.sweep_angle_min) < 0.1)
 	    {
 		base::commands::Joints joints;
 		joints.names.push_back( config.sweep_servo_name );
