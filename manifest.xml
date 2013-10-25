@@ -8,4 +8,6 @@
   <depend package="slam/envire" />
   <depend package="slam/orogen/envire" />
   <depend package="drivers/orogen/transformer" />
+  
+  <tags>needs_opt</tags>
 </package>
