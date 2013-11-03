@@ -139,8 +139,9 @@ void Task::writePointcloud()
     // write environment, if path is given
     if( !_environment_debug_path.value().empty() )
     {
-	LOG_DEBUG_S << "write to " << _environment_debug_path.value() << std::endl;
-	env.serialize(_environment_debug_path.value() );
+	std::string debug_path = _environment_debug_path.value() + "-" + getName();
+	LOG_DEBUG_S << "write to " << debug_path << std::endl;
+	env.serialize(debug_path);
     }
 
     if( _envire_events.connected() )
