@@ -32,6 +32,7 @@ namespace tilt_scan {
 	base::Time last_sweep_change;
 	bool sweep_forward;
 	bool scan_running;
+	bool generatePointCloud;
 
 	Configuration config;
 

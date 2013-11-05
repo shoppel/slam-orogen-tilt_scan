@@ -164,6 +164,8 @@ void Task::writePointcloud()
 
 void Task::scan_samplesTransformerCallback(const base::Time &ts, const ::base::samples::LaserScan &scan_samples_sample)
 {
+    if(!generatePointCloud)
+	return;
     // start building up scans until the odometry changes more than a delta
     // with respect to the first recorded pose of the scan, then start a new.
     // only consider scans of a specific number of lines valid
@@ -216,6 +218,7 @@ bool Task::configureHook()
     config = _config.value();
     sweep_forward = true;
     scan_running = false;
+    generatePointCloud = _generate_point_cloud.get();    
 
     return true;
 }
@@ -233,7 +236,6 @@ bool Task::startHook()
     joints.elements.push_back( cmd );
     _tilt_cmd.write( joints );
 
-    
     return true;
 }
 void Task::updateHook()
