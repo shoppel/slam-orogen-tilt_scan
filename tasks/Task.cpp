@@ -29,9 +29,6 @@ bool Task::handleSweep()
 {
     if( _tilt_cmd.connected() )
     {
-        if(!_tilt_status_samples.connected())
-            throw std::runtime_error("Status port of sweep servo not connected");
-
         base::samples::Joints status;
         while(_tilt_status_samples.read(status) == RTT::NewData)
 	{
