@@ -3,6 +3,7 @@ require 'rock/bundle'
 include Orocos
 
 Bundles.initialize
+Bundles.transformer.load_conf(Bundles.find_file('config', 'transforms.rb'))
 
 Orocos.run "servo_dynamixel::Task" => "dynamixel_base", 
 	    "tilt_scan::Task" => "tilt_scan",
@@ -23,7 +24,6 @@ Orocos.run "servo_dynamixel::Task" => "dynamixel_base",
     # the the tilt scan module
     tilt_scan = Orocos::TaskContext.get('tilt_scan')
     Orocos.conf.apply( tilt_scan )
-    Bundles.transformer.load_conf(Bundles.find_file('config', 'transforms_scripts.rb'))
     Bundles.transformer.setup( tilt_scan )
     tilt_scan.environment_debug_path = "/tmp/env"
     tilt_scan.configure
