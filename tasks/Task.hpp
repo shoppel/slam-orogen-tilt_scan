@@ -33,6 +33,7 @@ namespace tilt_scan {
 	bool sweep_forward;
 	bool scan_running;
 	bool generatePointCloud;
+        bool sent_initial_command;
 
 	Configuration config;
 

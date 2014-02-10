@@ -7,6 +7,7 @@
 #include <orocos/envire/Orocos.hpp>
 #include <base/Logging.hpp>
 #include <base/samples/Joints.hpp>
+#include <base/Time.hpp>
 
 using namespace tilt_scan;
 using namespace envire;
@@ -29,14 +30,33 @@ bool Task::handleSweep()
 {
     if( _tilt_cmd.connected() )
     {
+        LOG_DEBUG_S << " handle sweep starts" << std::endl;
         base::samples::Joints status;
         while(_tilt_status_samples.read(status) == RTT::NewData)
 	{
         
+            LOG_DEBUG_S << " Status samples has new data " << std::endl;
 	    base::JointState state = status.getElementByName(config.sweep_servo_name);
-        
-	    if(fabs(state.position - config.sweep_angle_max) < 0.1)
+	    
+            if (!sent_initial_command)
+            {
+                //drive initially to min angle
+                base::commands::Joints joints;
+                joints.names.push_back( config.sweep_servo_name );
+                base::JointState cmd;
+                cmd.position = config.sweep_angle_min;
+                cmd.speed = config.sweep_velocity;
+                joints.elements.push_back( cmd );
+                LOG_DEBUG_S << base::Time::now() << " Write first command to the Dynamixel in handle sweep method" << std::endl;
+                _tilt_cmd.write( joints );
+                sent_initial_command = true;
+
+            }
+
+
+            if(fabs(state.position - config.sweep_angle_max) < 0.1)
 	    {
+                LOG_DEBUG_S << " state.position - config.sweep_angle_max < 0.1 " << std::endl;
 		base::commands::Joints joints;
 		joints.names.push_back( config.sweep_servo_name );
 		base::JointState cmd;
@@ -49,6 +69,7 @@ bool Task::handleSweep()
 	    
 	    if(fabs(state.position - config.sweep_angle_min) < 0.1)
 	    {
+                LOG_DEBUG_S << " state.position - config.sweep_angle_min < 0.1 " << std::endl;
 		base::commands::Joints joints;
 		joints.names.push_back( config.sweep_servo_name );
 		base::JointState cmd;
@@ -58,11 +79,18 @@ bool Task::handleSweep()
 		_tilt_cmd.write( joints );
 		sweep_forward = false;
 	    }	    
-	    return true;
-	}
-    }
+            
 
+            LOG_DEBUG_S << " Status samples new data processed" << std::endl;
+	    return true; //Why a return here?? Does this makes sense??
+	}
+        LOG_DEBUG_S << " No new data in tilt status samples " << std::endl;
+    }
+    else
+    {
+    LOG_DEBUG_S << " Nothing connected to tilt_cmd" << std::endl;
     return false;
+    }
 }
 
 void Task::resetEnv( const Eigen::Affine3d& body2odometry )
@@ -90,6 +118,8 @@ void Task::resetEnv( const Eigen::Affine3d& body2odometry )
 
 void Task::addScanLine( const ::base::samples::LaserScan &scan, const Eigen::Affine3d& laser2body )
 {
+    LOG_DEBUG_S << " Starts addScanLine " << std::endl;
+
     lastScanTime = scan.time;
 
     // get the laserscan and set up the operator chain
@@ -117,6 +147,8 @@ void Task::addScanLine( const ::base::samples::LaserScan &scan, const Eigen::Aff
 
     // add to merge operator
     mergeOp->addInput( laserPc );
+    
+    LOG_DEBUG_S << " Ends addScanLine " << std::endl;
 }
 
 void Task::writePointcloud()
@@ -161,6 +193,8 @@ void Task::writePointcloud()
 
 void Task::scan_samplesTransformerCallback(const base::Time &ts, const ::base::samples::LaserScan &scan_samples_sample)
 {
+    LOG_DEBUG_S << " scan_samplesTransformerCallback starts " << std::endl;
+    
     if(!generatePointCloud)
 	return;
     // start building up scans until the odometry changes more than a delta
@@ -169,7 +203,10 @@ void Task::scan_samplesTransformerCallback(const base::Time &ts, const ::base::s
 
     Eigen::Affine3d body2odometry, laser2body;
     if( !_body2odometry.get( ts, body2odometry ) || !_laser2body.get( ts, laser2body, true ) )
+    {
+        LOG_DEBUG_S << " The transformation didn't work out " << std::endl;
 	return;
+    }
 
     if( scan_running )
     {
@@ -200,6 +237,7 @@ void Task::scan_samplesTransformerCallback(const base::Time &ts, const ::base::s
 
     // TODO test that the robot has not moved depending on configuration
     //if( scanFrame && !_config.value().max_pose_change.test( scan_body2odometry, body2odometry ) )
+    LOG_DEBUG_S << " scan_samplesTransformerCallback ends " << std::endl;
 }
 
 /// The following lines are template definitions for the various state machine
@@ -216,6 +254,8 @@ bool Task::configureHook()
     sweep_forward = true;
     scan_running = false;
     generatePointCloud = _generate_point_cloud.get();    
+    
+
 
     return true;
 }
@@ -224,22 +264,30 @@ bool Task::startHook()
     if (! TaskBase::startHook())
         return false;
 
+    sent_initial_command = false;
+
+    // if (_tilt_cmd.connected()) //even if said to be connected does not always receive the first cmd!
+    // A while waiting to read some status gives problems too
     //drive initially to min angle
-    base::commands::Joints joints;
-    joints.names.push_back( config.sweep_servo_name );
-    base::JointState cmd;
-    cmd.position = config.sweep_angle_min;
-    cmd.speed = config.sweep_velocity;
-    joints.elements.push_back( cmd );
-    _tilt_cmd.write( joints );
+    //base::commands::Joints joints;
+    //joints.names.push_back( config.sweep_servo_name );
+    //base::JointState cmd;
+    //cmd.position = config.sweep_angle_min;
+    //cmd.speed = config.sweep_velocity;
+    //joints.elements.push_back( cmd );
+    //LOG_DEBUG_S << base::Time::now() << " Write first command to the Dynamixel in start hook" << std::endl;
+    //_tilt_cmd.write( joints );
 
     return true;
 }
 void Task::updateHook()
 {
+    //LOG_DEBUG_S <<  base::Time::now() <<" The first command is supposed to be sent: "<<  sent_initial_command << std::endl;
+    LOG_DEBUG_S << base::Time::now() <<" starts updateHook" << std::endl;
     if( handleSweep() )
     {
-	scan_running = sweep_forward;
+        scan_running = sweep_forward;
+        LOG_DEBUG_S << base::Time::now() <<" updateHook scan_running: " << scan_running << std::endl;
     }
     TaskBase::updateHook();
 }
