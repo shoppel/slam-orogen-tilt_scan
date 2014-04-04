@@ -45,6 +45,8 @@ bool Task::handleSweep()
 		joints.elements.push_back( cmd );
 		_tilt_cmd.write( joints );
 		sweep_forward = true;
+                this->status.curState = SweepStatus::SWEEPING_DOWN;
+                _sweep_status.write(this->status);
 	    }
 	    
 	    if(fabs(state.position - config.sweep_angle_min) < 0.1)
@@ -57,6 +59,9 @@ bool Task::handleSweep()
 		joints.elements.push_back( cmd );
 		_tilt_cmd.write( joints );
 		sweep_forward = false;
+                this->status.curState = SweepStatus::SWEEPING_UP;
+                this->status.counter++;
+                _sweep_status.write(this->status);
 	    }	    
 	    return true;
 	}
@@ -217,6 +222,8 @@ bool Task::configureHook()
     scan_running = false;
     generatePointCloud = _generate_point_cloud.get();    
 
+    status.sourceName = config.sweep_servo_name;
+    
     return true;
 }
 bool Task::startHook()
@@ -232,6 +239,10 @@ bool Task::startHook()
     cmd.speed = config.sweep_velocity;
     joints.elements.push_back( cmd );
     _tilt_cmd.write( joints );
+    
+    status.counter = 0;
+    status.curState = SweepStatus::SWEEPING_DOWN;
+    _sweep_status.write(status);
 
     return true;
 }

@@ -4,6 +4,7 @@
 #define TILT_SCAN_TASK_TASK_HPP
 
 #include "tilt_scan/TaskBase.hpp"
+#include <tilt_scanTypes.hpp>
 #include <envire/Core.hpp>
 #include <envire/operators/MergePointcloud.hpp>
 #include <boost/shared_ptr.hpp>
@@ -35,7 +36,7 @@ namespace tilt_scan {
 	bool generatePointCloud;
 
 	Configuration config;
-
+        SweepStatus status;
     public:
         Task(std::string const& name = "tilt_scan::Task");
         Task(std::string const& name, RTT::ExecutionEngine* engine);

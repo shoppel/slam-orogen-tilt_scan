@@ -2,6 +2,7 @@
 #define __TILT_SCAN_TYPES_HPP__
 
 #include <base/Pose.hpp>
+#include <stdint.h>
 
 namespace tilt_scan
 {
@@ -30,6 +31,37 @@ struct Configuration
     /** name of the servo to sweep */
     std::string sweep_servo_name;
 };
+
+    struct SweepStatus
+    {
+        SweepStatus() : counter(0), curState(NOT_SWEEPING)
+        {};
+        
+        enum State {
+            NOT_SWEEPING,
+            SWEEPING_UP,
+            SWEEPING_DOWN,
+        };
+        ///counter of the sweeps, wraps at 255
+        uint8_t counter;
+        
+        ///current state of sweeping
+        State curState;
+        
+        ///name of the sweeping device
+        std::string sourceName;
+        
+        /**
+         * Return true if one ore more sweeps
+         * in respect to the given state werde done.
+         * 
+         * Also returns true, if not sweeping at all.
+         * */
+        bool isNextSweep(SweepStatus lastState)
+        {
+            return NOT_SWEEPING || lastState.counter != counter;
+        }
+    };
 
 }
 
