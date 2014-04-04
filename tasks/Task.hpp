@@ -37,6 +37,8 @@ namespace tilt_scan {
 
 	Configuration config;
         SweepStatus status;
+        base::commands::Joints servoCmd;
+        base::Time lastCmdTime;
     public:
         Task(std::string const& name = "tilt_scan::Task");
         Task(std::string const& name, RTT::ExecutionEngine* engine);

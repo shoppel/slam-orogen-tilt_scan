@@ -30,41 +30,41 @@ bool Task::handleSweep()
     if( _tilt_cmd.connected() )
     {
         base::samples::Joints status;
+        bool gotCmd = false;
         while(_tilt_status_samples.read(status) == RTT::NewData)
 	{
-        
 	    base::JointState state = status.getElementByName(config.sweep_servo_name);
         
 	    if(fabs(state.position - config.sweep_angle_max) < 0.1)
 	    {
-		base::commands::Joints joints;
-		joints.names.push_back( config.sweep_servo_name );
-		base::JointState cmd;
-		cmd.position = config.sweep_angle_min;
-		cmd.speed = config.sweep_velocity;
-		joints.elements.push_back( cmd );
-		_tilt_cmd.write( joints );
-		sweep_forward = true;
+		servoCmd.elements[0].position = config.sweep_angle_min;
+                gotCmd = true;
+                sweep_forward = true;
                 this->status.curState = SweepStatus::SWEEPING_DOWN;
-                _sweep_status.write(this->status);
 	    }
 	    
 	    if(fabs(state.position - config.sweep_angle_min) < 0.1)
 	    {
-		base::commands::Joints joints;
-		joints.names.push_back( config.sweep_servo_name );
-		base::JointState cmd;
-		cmd.position = config.sweep_angle_max;
-		cmd.speed = config.sweep_velocity;
-		joints.elements.push_back( cmd );
-		_tilt_cmd.write( joints );
+                servoCmd.elements[0].position = config.sweep_angle_max;
+                gotCmd = true;
 		sweep_forward = false;
+                if(this->status.curState != SweepStatus::SWEEPING_UP)
+                    this->status.counter++;
+                
                 this->status.curState = SweepStatus::SWEEPING_UP;
-                this->status.counter++;
-                _sweep_status.write(this->status);
 	    }	    
 	    return true;
 	}
+	
+	base::Time curTime = base::Time::now();
+	
+	if(gotCmd || curTime - lastCmdTime > base::Time::fromMilliseconds(100))
+        {
+            servoCmd.time = curTime;
+            lastCmdTime = curTime;
+            _tilt_cmd.write( servoCmd );
+            _sweep_status.write(this->status);
+        }
     }
 
     return false;
@@ -232,13 +232,13 @@ bool Task::startHook()
         return false;
 
     //drive initially to min angle
-    base::commands::Joints joints;
-    joints.names.push_back( config.sweep_servo_name );
-    base::JointState cmd;
-    cmd.position = config.sweep_angle_min;
-    cmd.speed = config.sweep_velocity;
-    joints.elements.push_back( cmd );
-    _tilt_cmd.write( joints );
+    servoCmd.names.push_back( config.sweep_servo_name );
+    base::JointState state;
+    state.position = config.sweep_angle_min;
+    state.speed = config.sweep_velocity;
+    servoCmd.elements.push_back( state );
+    _tilt_cmd.write( servoCmd );
+    lastCmdTime = base::Time::now();
     
     status.counter = 0;
     status.curState = SweepStatus::SWEEPING_DOWN;
