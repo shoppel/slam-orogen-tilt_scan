@@ -41,6 +41,7 @@ bool Task::handleSweep()
                 gotCmd = true;
                 sweep_forward = true;
                 this->status.curState = SweepStatus::SWEEPING_DOWN;
+		break;
 	    }
 	    
 	    if(fabs(state.position - config.sweep_angle_min) < 0.1)
@@ -52,8 +53,9 @@ bool Task::handleSweep()
                     this->status.counter++;
                 
                 this->status.curState = SweepStatus::SWEEPING_UP;
-	    }	    
-	    return true;
+		break;
+	    }
+
 	}
 	
 	base::Time curTime = base::Time::now();
@@ -65,6 +67,8 @@ bool Task::handleSweep()
             _tilt_cmd.write( servoCmd );
             _sweep_status.write(this->status);
         }
+        
+        return true;
     }
 
     return false;
