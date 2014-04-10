@@ -9,9 +9,19 @@ namespace tilt_scan
 struct Configuration
 {
     Configuration()
-	: max_lines( 200 ),
-	max_pose_change( 0.01, 1.0 / 180.0 * M_PI )
+	: mode(CONTINUOUS_SWEEPING),
+	max_lines( 200 ),
+	max_pose_change( 0.01, 1.0 / 180.0 * M_PI ),
+	min_sweep_velocity( 0.0 )
     {}
+    
+    enum Mode {
+	CONTINUOUS_SWEEPING,
+	GROUND_BASED_SWEEPING
+    };
+    
+    /** current mode */
+    Mode mode;
 
     /** maximum number of lines until the scan is considered complete */
     int max_lines;
@@ -30,6 +40,18 @@ struct Configuration
 
     /** name of the servo to sweep */
     std::string sweep_servo_name;
+    
+    /** minimum sweep velocity in rad/s the servo can handle */
+    float min_sweep_velocity;
+    
+    /** sweep velocity in meter/s on ground */
+    float sweep_velocity_on_ground;
+    
+    /** maximum ground distance for which a sweep velocity is computed */
+    float max_distance_on_ground;
+    
+    /** distance between sensor and ground */
+    float distance_sensor2ground;
 };
 
     struct SweepStatus

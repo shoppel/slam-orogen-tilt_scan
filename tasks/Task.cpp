@@ -28,13 +28,48 @@ Task::~Task()
 bool Task::handleSweep()
 {
     if( _tilt_cmd.connected() )
-    {
+    {	
         base::samples::Joints status;
         bool gotCmd = false;
         while(_tilt_status_samples.read(status) == RTT::NewData)
 	{
 	    base::JointState state = status.getElementByName(config.sweep_servo_name);
-        
+	    
+	    // adapt sweeping speed
+	    if(config.mode == Configuration::GROUND_BASED_SWEEPING)
+	    {
+		// get dynamixel2body frame
+		Eigen::Affine3d lower_dynamixel2body;
+		if( !_lower_dynamixel2body.get( status.time, lower_dynamixel2body ) )
+		    return false;
+		// compute the absolute tilt angle in [0,PI/2]
+		base::Angle tilt_angle = base::Angle::fromRad(state.position) + base::Angle::fromRad(base::getPitch(Eigen::Quaterniond(lower_dynamixel2body.linear())));
+		double abs_tilt_angle = std::abs(std::abs(tilt_angle.getRad()) - M_PI_2);
+		// compute intersection with ground plane
+		double ground_intersection = config.distance_sensor2ground * tan(abs_tilt_angle);
+		
+		if( !base::isNaN<double>( ground_intersection ) &&
+		    ground_intersection <= config.max_distance_on_ground)
+		{
+		    if(ground_intersection > config.sweep_velocity_on_ground)
+		    {
+			double next_tilt_angle = atan2( ground_intersection - config.sweep_velocity_on_ground, config.distance_sensor2ground );
+			servoCmd.elements[0].speed = abs_tilt_angle - next_tilt_angle;
+		    }
+		    else
+		    {
+			servoCmd.elements[0].speed = atan2( config.sweep_velocity_on_ground, config.distance_sensor2ground );
+		    }
+		    
+		    // limit minimal servo speed
+		    if(servoCmd.elements[0].speed < config.min_sweep_velocity)
+			servoCmd.elements[0].speed = config.min_sweep_velocity;
+		    
+		    // send new command
+		    servoCmd.time = base::Time::now();
+		    _tilt_cmd.write( servoCmd );
+		}
+	    }
 	    if(fabs(state.position - config.sweep_angle_max) < 0.1)
 	    {
 		servoCmd.elements[0].position = config.sweep_angle_min;

@@ -41,6 +41,7 @@ task_context "Task" do
 
 	transformation("laser", "body")	
 	transformation("body", "odometry")
+	transformation("lower_dynamixel", "body")
 
 	align_port("scan_samples", 0.02) 
     end
