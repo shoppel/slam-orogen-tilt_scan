@@ -109,68 +109,55 @@ bool Task::handleSweep()
     return false;
 }
 
+void Task::resetEnv()
+{
+    // generate new environment
+    env = boost::shared_ptr<envire::Environment>( new envire::Environment() );
+
+    // as well as a merge operator has the pointcloud as output
+    mergeOp = new MergePointcloud();
+    env->attachItem( mergeOp );
+}
+
 void Task::addScanLine( const ::base::samples::LaserScan &scan, const Eigen::Affine3d& laser2Odometry )
 {
     lastScanTime = scan.time;
 
-    // get the laserscan and set up the operator chain
-    FrameNode* laserFrame = new FrameNode( laser2Odometry );
-    env->getRootNode()->addChild( laserFrame );
-
-    LaserScan *scanNode = new LaserScan();
-    scanNode->setXForward();
-    scanNode->addScanLine( 0, scan );
-    env->setFrameNode( scanNode, laserFrame );
-
-    TriMesh *laserPc = new TriMesh();
-    env->setFrameNode( laserPc, laserFrame );
-
-    ScanMeshing *smOp = new ScanMeshing();
-    smOp->setMaxRange( _max_scan_dist.value() );
-    env->attachItem( smOp );
-    smOp->addInput( scanNode );
-    smOp->addOutput( laserPc );
-    smOp->updateAll();
-
-    // detach input nodes
-    smOp->detach();
-    scanNode->detach();
+    Pointcloud *cloud = new Pointcloud();
+    
+    scan.convertScanToPointCloud(cloud->vertices, laser2Odometry);
+    env->setFrameNode(cloud, env->getRootNode());
 
     // add to merge operator
-    mergeOp->addInput( laserPc );
+    mergeOp->addInput( cloud );
 }
 
-void Task::writePointcloud(const Eigen::Affine3d& body2odometry)
+void Task::writePointcloud(const Eigen::Affine3d& body2odometry )
 {
-    // set-up new structure
-    // Framenode for the body to odometry
-    scanFrame = new envire::FrameNode( );
-    env->getRootNode()->addChild( scanFrame.get() );
-
-    // and a pointlcoud with the final scan
-    targetPointcloud = new envire::Pointcloud();
-    env->setFrameNode( targetPointcloud.get(), scanFrame.get() );
-
-    // as well as a merge operator has the pointcloud as output
-    mergeOp = new MergePointcloud();
-    env->attachItem( mergeOp.get() );
-    mergeOp->addOutput( targetPointcloud.get() );
-    
-    mergeOp->updateAll();
-
     LOG_DEBUG_S << "got a pointcloud!" << std::endl;
 
+    // set-up new structure
+    // Framenode for the body to odometry
+    envire::FrameNode *pcFrame = new envire::FrameNode( body2odometry );
+    env->getRootNode()->addChild( pcFrame );
+
+    // and a pointlcoud with the final scan
+    envire::Pointcloud *targetPointcloud = new envire::Pointcloud();
+    env->setFrameNode( targetPointcloud, pcFrame );
+
+    mergeOp->addOutput( targetPointcloud );
+    mergeOp->updateAll();
+
+    
     // generate add-hoc environment that only contains
     // target pointcloud
     envire::Environment envOut;
-    
-    //move point cloud to current odometryPosition
-    scanFrame->setTransform(body2odometry);
-
-    envOut.attachItem( scanFrame.get() );
-    envOut.getRootNode()->addChild( scanFrame.get() );
-    envOut.attachItem( targetPointcloud.get() );
-    targetPointcloud->setFrameNode( scanFrame.get() );
+    envire::FrameNode *pcFrameOut = new envire::FrameNode( body2odometry );
+    envOut.attachItem( pcFrameOut );
+    envOut.getRootNode()->addChild( pcFrameOut );
+    EnvironmentItem::Ptr targetPointcloudOut  = env->detachItem(targetPointcloud);
+    envOut.attachItem( targetPointcloudOut.get() );
+    targetPointcloud->setFrameNode( pcFrameOut );
 
     // write environment, if path is given
     if( !_environment_debug_path.value().empty() )
@@ -196,8 +183,6 @@ void Task::writePointcloud(const Eigen::Affine3d& body2odometry)
 	std::copy( targetPointcloud->vertices.begin(), targetPointcloud->vertices.end(), pc.points.begin() );
 	_pointcloud.write( pc );
     }
-    
-    env.reset(new envire::Environment());
 }
 
 void Task::scan_samplesTransformerCallback(const base::Time &ts, const ::base::samples::LaserScan &scan_samples_sample)
@@ -216,18 +201,19 @@ void Task::scan_samplesTransformerCallback(const base::Time &ts, const ::base::s
     {
 	// setup an environment if there is none
 	if( !env )
-            env.reset(new envire::Environment());
+	    resetEnv();
 
-    Eigen::Affine3d laser2Odometry(body2odometry * laser2body);
+        Eigen::Affine3d laser2Odometry(body2odometry * laser2body);
         
 	// add the current scan-line
-	// TODO what if the body does move? add the body2odometry transform in a better way
 	addScanLine( scan_samples_sample, laser2Odometry );
+        
+        body2odometryAtLastScan = body2odometry;
     }
 
     if( !scan_running && env )
     {
-	writePointcloud(body2odometry);
+	writePointcloud(body2odometryAtLastScan);
 	env = boost::shared_ptr<envire::Environment>();
     }
 

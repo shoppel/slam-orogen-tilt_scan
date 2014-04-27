@@ -17,16 +17,15 @@ namespace tilt_scan {
 
         virtual void scan_samplesTransformerCallback(const base::Time &ts, const ::base::samples::LaserScan &scan_samples_sample);
 
+        Eigen::Affine3d body2odometryAtLastScan;
 	boost::shared_ptr<envire::Environment> env;
-	envire::FrameNode::Ptr scanFrame;
-	envire::MergePointcloud::Ptr mergeOp;
-	envire::Pointcloud::Ptr targetPointcloud;
+	envire::MergePointcloud *mergeOp;
 
 	base::Time lastScanTime;
 
-	void addScanLine( const ::base::samples::LaserScan &scan, const Eigen::Affine3d& laser2body );
-	void writePointcloud(const Eigen::Affine3d& body2odometry);
-	void resetEnv(const Eigen::Affine3d& body2odometry);
+	void addScanLine( const ::base::samples::LaserScan &scan, const Eigen::Affine3d& laser2Odometry );
+	void writePointcloud(const Eigen::Affine3d& body2odometry );
+	void resetEnv();
 
 	bool handleSweep();
 	base::Time last_sweep_change;
