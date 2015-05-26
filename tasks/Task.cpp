@@ -284,6 +284,7 @@ void Task::updateHook()
 // }
 void Task::stopHook()
 {
+    servoCmd.clear();
     TaskBase::stopHook();
 }
 
