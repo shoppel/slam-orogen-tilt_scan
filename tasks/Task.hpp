@@ -8,6 +8,7 @@
 #include <envire/Core.hpp>
 #include <envire/operators/MergePointcloud.hpp>
 #include <boost/shared_ptr.hpp>
+#include <base/commands/Joints.hpp>
 
 namespace tilt_scan {
     class Task : public TaskBase
