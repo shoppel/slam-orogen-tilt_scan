@@ -36,6 +36,10 @@ task_context "Task" do
 
     input_port "tilt_status_samples", "base/samples/Joints"
 
+    operation("triggerSweep").
+        doc("Triggers a new sweep")
+
+    
     transformer do
 	max_latency( 0.2 )
 

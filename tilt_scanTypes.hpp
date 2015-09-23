@@ -17,7 +17,8 @@ struct Configuration
     
     enum Mode {
 	CONTINUOUS_SWEEPING,
-	GROUND_BASED_SWEEPING
+	GROUND_BASED_SWEEPING,
+        TRIGGERED_SWEEPING,
     };
     
     /** current mode */
@@ -64,6 +65,7 @@ struct Configuration
         
         enum State {
             NOT_SWEEPING,
+            REACHED_UP_POSITION,
             SWEEPING_UP,
             SWEEPING_DOWN,
         };

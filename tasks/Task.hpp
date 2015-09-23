@@ -17,7 +17,8 @@ namespace tilt_scan {
     protected:
 
         virtual void scan_samplesTransformerCallback(const base::Time &ts, const ::base::samples::LaserScan &scan_samples_sample);
-
+        virtual void triggerSweep();
+        
         Eigen::Affine3d body2odometryAtLastScan;
 	boost::shared_ptr<envire::Environment> env;
 	envire::MergePointcloud *mergeOp;
@@ -30,6 +31,7 @@ namespace tilt_scan {
 
 	bool handleSweep();
 	base::Time last_sweep_change;
+        bool trigger;
 	bool scan_running;
 	bool generatePointCloud;
 
