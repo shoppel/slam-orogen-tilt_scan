@@ -73,8 +73,8 @@ bool Task::handleSweep()
 	    if(fabs(state.position - config.sweep_angle_max) < 0.1)
 	    {
 		servoCmd.elements[0].position = config.sweep_angle_min;
+                servoCmd.elements[0].speed = config.sweep_velocity_down;
                 gotCmd = true;
-                sweep_forward = true;
                 this->status.curState = SweepStatus::SWEEPING_DOWN;
 		break;
 	    }
@@ -82,8 +82,8 @@ bool Task::handleSweep()
 	    if(fabs(state.position - config.sweep_angle_min) < 0.1)
 	    {
                 servoCmd.elements[0].position = config.sweep_angle_max;
+                servoCmd.elements[0].speed = config.sweep_velocity_up;
                 gotCmd = true;
-		sweep_forward = false;
                 if(this->status.curState != SweepStatus::SWEEPING_UP)
                     this->status.counter++;
                 
@@ -242,7 +242,6 @@ bool Task::configureHook()
 
     // copy configuration 
     config = _config.value();
-    sweep_forward = true;
     scan_running = false;
     generatePointCloud = _generate_point_cloud.get();    
 
@@ -259,7 +258,7 @@ bool Task::startHook()
     servoCmd.names.push_back( config.sweep_servo_name );
     base::JointState state;
     state.position = config.sweep_angle_min;
-    state.speed = config.sweep_velocity;
+    state.speed = config.sweep_velocity_down;
     servoCmd.elements.push_back( state );
     _tilt_cmd.write( servoCmd );
     lastCmdTime = base::Time::now();
@@ -274,7 +273,7 @@ void Task::updateHook()
 {
     if( handleSweep() )
     {
-	scan_running = sweep_forward;
+	scan_running = status.curState == SweepStatus::SWEEPING_DOWN;
     }
     TaskBase::updateHook();
 }

@@ -35,8 +35,11 @@ struct Configuration
     /** maximum angle to use when sweeping in rad */
     float sweep_angle_max;
 
-    /** sweep velocity in rad/s */
-    float sweep_velocity;
+    /** sweep velocity up in rad/s */
+    float sweep_velocity_up;
+    
+    /** sweep velocity down in rad/s. Note the point cloud is only generated while sweeping down */
+    float sweep_velocity_down;
 
     /** name of the servo to sweep */
     std::string sweep_servo_name;
