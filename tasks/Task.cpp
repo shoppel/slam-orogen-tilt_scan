@@ -46,12 +46,12 @@ bool Task::handleSweep()
 	{
 	    state = jointStatus.getElementByName(config.sweep_servo_name);
 	    
-	    if(fabs(state.position - config.sweep_angle_max) < 0.1)
+	    if((status.curState == SweepStatus::SWEEPING_UP) && fabs(state.position - config.sweep_angle_max) < 0.1)
 	    {
                 status.curState = SweepStatus::REACHED_UP_POSITION;
 	    }
 	    
-	    if(fabs(state.position - config.sweep_angle_min) < 0.1)
+	    if((status.curState == SweepStatus::SWEEPING_DOWN) && fabs(state.position - config.sweep_angle_min) < 0.1)
 	    {
                 servoCmd.elements[0].position = config.sweep_angle_max;
                 servoCmd.elements[0].speed = config.sweep_velocity_up;
@@ -285,7 +285,7 @@ void Task::updateHook()
 {
     if( handleSweep() )
     {
-	scan_running = status.curState == SweepStatus::SWEEPING_DOWN;
+	scan_running = (status.curState == SweepStatus::SWEEPING_DOWN);
     }
     TaskBase::updateHook();
 }
