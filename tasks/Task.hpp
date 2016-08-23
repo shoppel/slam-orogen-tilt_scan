@@ -5,6 +5,7 @@
 #include <tilt_scanTypes.hpp>
 
 #include <base/commands/Joints.hpp>
+#include <base/samples/Pointcloud.hpp>
 
 namespace tilt_scan
 {
@@ -14,20 +15,19 @@ namespace tilt_scan
 	protected:
 
 		// Callbacks
-		virtual void scan_samplesTransformerCallback(const base::Time &ts, const ::base::samples::LaserScan &scan_samples_sample);
+		virtual void scanTransformerCallback(const base::Time &ts, const base::samples::LaserScan &scan);
 		virtual void trigger_sweep();
 
 		// Internal methods
+		void checkTiltStatus();
+		void sendPointcloud();
 
 		// Members
-		bool trigger;
-		bool scan_running;
+		base::Time mLastScanTime;
+		bool mTrigger;
 
-		base::Time last_sweep_change;
-		base::Time lastScanTime;
-		base::Time lastCmdTime;
-
-		base::commands::Joints servoCmd;
+		base::commands::Joints mTiltCommand;
+		base::samples::Pointcloud mPointcloud;
 
 		Configuration mConfiguration;
 		SweepStatus mSweepStatus;

@@ -5,11 +5,11 @@ import_types_from 'tilt_scanTypes.hpp'
 
 task_context "Task" do
 
-	input_port('scan_samples', '/base/samples/LaserScan')
+	input_port('scan', '/base/samples/LaserScan')
 	.needs_reliable_connection
 	.doc("timestamped laser scans")
 
-	input_port('tilt_status_samples', 'base/samples/Joints')
+	input_port('tilt_status', 'base/samples/Joints')
 	.doc("")
 
 	output_port('pointcloud', '/base/samples/Pointcloud')
@@ -31,9 +31,9 @@ task_context "Task" do
 		max_latency( 0.2 )
 
 		transformation("laser", "odometry")	
-		transformation("body", "odometry")
+		transformation("odometry", "body")
 
-		align_port("scan_samples", 0.02)
+		align_port("scan", 0.02)
 	end
 
 	port_driven
