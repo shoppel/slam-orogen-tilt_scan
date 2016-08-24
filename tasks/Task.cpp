@@ -37,7 +37,7 @@ void Task::checkTiltStatus()
 	// Reached upper end point
 	if((mSweepStatus.curState == SweepStatus::SWEEPING_UP) && fabs(jointState.position - mConfiguration.sweep_angle_max) < 0.1)
 	{
-		if(mConfiguration.mode = Configuration::CONTINUOUS_SWEEPING)
+		if(mConfiguration.mode == Configuration::CONTINUOUS_SWEEPING)
 		{
 			_tilt_cmd.write( mTiltDownCommand );
 			mSweepStatus.curState = SweepStatus::SWEEPING_DOWN;
@@ -53,6 +53,7 @@ void Task::checkTiltStatus()
 		sendPointcloud();
 		_tilt_cmd.write( mTiltUpCommand );
 		mSweepStatus.curState = SweepStatus::SWEEPING_UP;
+		mSweepStatus.counter++;
 	}
 	
 	// Received trigger signal
@@ -146,10 +147,9 @@ bool Task::startHook()
 		return false;
 
 	//drive initially to up position
-	_tilt_cmd.write( mTiltUpCommand );
-	mTrigger = false;
+	mTrigger = true;
 	mSweepStatus.counter = 0;
-	mSweepStatus.curState = SweepStatus::SWEEPING_UP;
+	mSweepStatus.curState = SweepStatus::REACHED_UP_POSITION;
 	_sweep_status.write(mSweepStatus);
 
 	return true;

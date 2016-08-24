@@ -36,6 +36,6 @@ task_context "Task" do
 		align_port("scan", 0.02)
 	end
 
-	port_driven
+	port_driven("scan")
 	needs_configuration
 end
