@@ -15,7 +15,7 @@ namespace tilt_scan
 	protected:
 
 		// Callbacks
-		virtual void scanTransformerCallback(const base::Time &ts, const base::samples::LaserScan &scan);
+		virtual void scan_samplesTransformerCallback(const base::Time &ts, const base::samples::LaserScan &scan);
 		virtual void trigger_sweep();
 
 		// Internal methods

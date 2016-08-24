@@ -29,7 +29,7 @@ void Task::checkTiltStatus()
 {
 	base::samples::Joints joints;
 	base::JointState jointState;
-	while(_tilt_status.read(joints) == RTT::NewData)
+	while(_tilt_status_samples.read(joints) == RTT::NewData)
 	{
 		jointState = joints.getElementByName(mConfiguration.sweep_servo_name);
 	}
@@ -87,7 +87,7 @@ void Task::sendPointcloud()
 	mPointcloud.points.clear();
 }
 
-void Task::scanTransformerCallback(const base::Time &ts, const base::samples::LaserScan &scan)
+void Task::scan_samplesTransformerCallback(const base::Time &ts, const base::samples::LaserScan &scan)
 {
 	// Do nothing if sweeping is inactive
 	if(mSweepStatus.curState == SweepStatus::NOT_SWEEPING)

@@ -5,27 +5,27 @@ import_types_from 'tilt_scanTypes.hpp'
 
 task_context "Task" do
 
-	input_port('scan', '/base/samples/LaserScan')
+	input_port('scan_samples', '/base/samples/LaserScan')
 	.needs_reliable_connection
-	.doc("timestamped laser scans")
+	.doc("Timestamped laser scans from line scanner.")
 
-	input_port('tilt_status', 'base/samples/Joints')
-	.doc("")
+	input_port('tilt_status_samples', 'base/samples/Joints')
+	.doc("Status feedback from tilt actuator.")
 
 	output_port('pointcloud', '/base/samples/Pointcloud')
-	.doc("pointcloud in the body frame")
+	.doc("Pointcloud merged from scans converted to body frame")
 
 	output_port('tilt_cmd', 'base/commands/Joints')
-	.doc("output commands for the tilt joint")
+	.doc("Command for the tilt actuator.")
 
-	output_port('sweep_status', 'tilt_scan/SweepStatus').
-	doc 'current status of the sweep'
+	output_port('sweep_status', 'tilt_scan/SweepStatus')
+	.doc("Current status of the sweep.")
 
 	operation('trigger_sweep')
 	.doc("Triggers a new sweep.")
 
 	property('config', 'tilt_scan/Configuration')
-	.doc("configuration of this module")
+	.doc("configuration of this module.")
 
 	transformer do
 		max_latency( 0.2 )
@@ -33,9 +33,9 @@ task_context "Task" do
 		transformation("laser", "odometry")	
 		transformation("odometry", "body")
 
-		align_port("scan", 0.02)
+		align_port("scan_samples", 0.02)
 	end
 
-	port_driven("scan")
+	port_driven("scan_samples")
 	needs_configuration
 end
