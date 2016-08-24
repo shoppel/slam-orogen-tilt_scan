@@ -26,7 +26,8 @@ namespace tilt_scan
 		base::Time mLastScanTime;
 		bool mTrigger;
 
-		base::commands::Joints mTiltCommand;
+		base::commands::Joints mTiltUpCommand;
+		base::commands::Joints mTiltDownCommand;
 		base::samples::Pointcloud mPointcloud;
 
 		Configuration mConfiguration;

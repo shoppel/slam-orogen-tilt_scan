@@ -28,20 +28,39 @@ void Task::trigger_sweep()
 void Task::checkTiltStatus()
 {
 	base::samples::Joints joints;
+	base::JointState jointState;
 	while(_tilt_status.read(joints) == RTT::NewData)
 	{
-		base::JointState jointState;
 		jointState = joints.getElementByName(mConfiguration.sweep_servo_name);
-		
-		if((mSweepStatus.curState == SweepStatus::SWEEPING_UP) && fabs(jointState.position - mConfiguration.sweep_angle_max) < 0.1)
+	}
+	
+	// Reached upper end point
+	if((mSweepStatus.curState == SweepStatus::SWEEPING_UP) && fabs(jointState.position - mConfiguration.sweep_angle_max) < 0.1)
+	{
+		if(mConfiguration.mode = Configuration::CONTINUOUS_SWEEPING)
+		{
+			_tilt_cmd.write( mTiltDownCommand );
+			mSweepStatus.curState = SweepStatus::SWEEPING_DOWN;
+		}else
 		{
 			mSweepStatus.curState = SweepStatus::REACHED_UP_POSITION;
 		}
-		
-		if((mSweepStatus.curState == SweepStatus::SWEEPING_DOWN) && fabs(jointState.position - mConfiguration.sweep_angle_min) < 0.1)
-		{
-			mSweepStatus.curState = SweepStatus::SWEEPING_UP;
-		}
+	}
+	
+	// Reached lower endpoint
+	if((mSweepStatus.curState == SweepStatus::SWEEPING_DOWN) && fabs(jointState.position - mConfiguration.sweep_angle_min) < 0.1)
+	{
+		sendPointcloud();
+		_tilt_cmd.write( mTiltUpCommand );
+		mSweepStatus.curState = SweepStatus::SWEEPING_UP;
+	}
+	
+	// Received trigger signal
+	if((mSweepStatus.curState == SweepStatus::REACHED_UP_POSITION) && mTrigger)
+	{
+		mTrigger = false;
+		_tilt_cmd.write( mTiltDownCommand );
+		mSweepStatus.curState = SweepStatus::SWEEPING_DOWN;
 	}
 }
 
@@ -94,6 +113,10 @@ void Task::scanTransformerCallback(const base::Time &ts, const base::samples::La
 	{
 		mPointcloud.points.push_back(*it);
 	}
+	
+	// Check sweep and update status
+	checkTiltStatus();
+	_sweep_status.write(mSweepStatus);
 }
 
 bool Task::configureHook()
@@ -103,6 +126,17 @@ bool Task::configureHook()
 
     mConfiguration = _config.get();
     mSweepStatus.sourceName = mConfiguration.sweep_servo_name;
+	
+	base::JointState state;	
+	state.position = mConfiguration.sweep_angle_max;
+	state.speed = mConfiguration.sweep_velocity_up;
+	mTiltUpCommand.names.push_back( mConfiguration.sweep_servo_name );
+	mTiltUpCommand.elements.push_back( state );
+	
+	state.position = mConfiguration.sweep_angle_min;
+	state.speed = mConfiguration.sweep_velocity_down;
+	mTiltDownCommand.names.push_back( mConfiguration.sweep_servo_name );
+	mTiltDownCommand.elements.push_back( state );
     return true;
 }
 
@@ -111,15 +145,8 @@ bool Task::startHook()
 	if (! TaskBase::startHook())
 		return false;
 
-	//drive initially to min angle
-	mTiltCommand.names.push_back( mConfiguration.sweep_servo_name );
-	base::JointState state;
-	state.position = mConfiguration.sweep_angle_max;
-	state.speed = mConfiguration.sweep_velocity_up;
-	mTiltCommand.elements.push_back( state );
-	mTiltCommand.time = base::Time::now();
-	_tilt_cmd.write( mTiltCommand );
-
+	//drive initially to up position
+	_tilt_cmd.write( mTiltUpCommand );
 	mTrigger = false;
 	mSweepStatus.counter = 0;
 	mSweepStatus.curState = SweepStatus::SWEEPING_UP;
@@ -140,7 +167,8 @@ void Task::errorHook()
 
 void Task::stopHook()
 {
-	mTiltCommand.clear();
+	mTiltUpCommand.clear();
+	mTiltDownCommand.clear();
 	TaskBase::stopHook();
 }
 
