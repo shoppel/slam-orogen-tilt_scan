@@ -14,7 +14,8 @@ namespace tilt_scan
 		sweep_angle_min(-1.0),
 		sweep_angle_max(1.0),
 		sweep_velocity_up(2.0),
-		sweep_velocity_down(0.5)
+		sweep_velocity_down(0.5),
+		sweep_back_and_forth(false)
 		{}
 
 		enum Mode {
@@ -37,11 +38,14 @@ namespace tilt_scan
 		/** sweep velocity up in rad/s */
 		float sweep_velocity_up;
 
-		/** sweep velocity down in rad/s. Note the point cloud is only generated while sweeping down */
+		/** sweep velocity down in rad/s, by default the point cloud is only generated while sweeping down */
 		float sweep_velocity_down;
 
 		/** name of the servo to sweep */
 		std::string sweep_servo_name;
+
+		/** also take a pointcloud while sweeping up */
+		bool sweep_back_and_forth;
 	};
 
 	struct SweepStatus
@@ -51,6 +55,7 @@ namespace tilt_scan
 		
 		enum State {
 			NOT_SWEEPING,
+			INITIALIZING,
 			REACHED_UP_POSITION,
 			SWEEPING_UP,
 			SWEEPING_DOWN,

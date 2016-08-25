@@ -27,11 +27,36 @@ void Task::trigger_sweep()
 
 void Task::checkTiltStatus()
 {
+	// Get current joint state
 	base::samples::Joints joints;
 	base::JointState jointState;
+	bool tilt_ok = false;
 	while(_tilt_status_samples.read(joints) == RTT::NewData)
 	{
 		jointState = joints.getElementByName(mConfiguration.sweep_servo_name);
+		tilt_ok = true;
+	}
+	
+	if(!tilt_ok)
+	{
+		LOG_WARN("Could not get joint status from tilt unit.");
+		return;
+	}
+	
+	// Initialized to up posiition
+	if((mSweepStatus.curState == SweepStatus::INITIALIZING))
+	{
+		if(fabs(jointState.position - mConfiguration.sweep_angle_max) < 0.1)
+		{
+			mSweepStatus.curState = SweepStatus::REACHED_UP_POSITION;
+		}else
+		{
+			if(mTrigger)
+				_tilt_cmd.write( mTiltUpCommand );
+			else
+				mTrigger = false;
+			return;
+		}
 	}
 	
 	// Reached upper end point
@@ -39,12 +64,17 @@ void Task::checkTiltStatus()
 	{
 		if(mConfiguration.mode == Configuration::CONTINUOUS_SWEEPING)
 		{
+			if(mConfiguration.sweep_back_and_forth)
+			{
+				sendPointcloud();
+			}
 			_tilt_cmd.write( mTiltDownCommand );
 			mSweepStatus.curState = SweepStatus::SWEEPING_DOWN;
 		}else
 		{
 			mSweepStatus.curState = SweepStatus::REACHED_UP_POSITION;
 		}
+		return;
 	}
 	
 	// Reached lower endpoint
@@ -53,7 +83,7 @@ void Task::checkTiltStatus()
 		sendPointcloud();
 		_tilt_cmd.write( mTiltUpCommand );
 		mSweepStatus.curState = SweepStatus::SWEEPING_UP;
-		mSweepStatus.counter++;
+		return;
 	}
 	
 	// Received trigger signal
@@ -85,6 +115,7 @@ void Task::sendPointcloud()
 	result.time = mLastScanTime;
 	_pointcloud.write(result);
 	mPointcloud.points.clear();
+	mSweepStatus.counter++;
 }
 
 void Task::scan_samplesTransformerCallback(const base::Time &ts, const base::samples::LaserScan &scan)
@@ -149,7 +180,7 @@ bool Task::startHook()
 	//drive initially to up position
 	mTrigger = true;
 	mSweepStatus.counter = 0;
-	mSweepStatus.curState = SweepStatus::REACHED_UP_POSITION;
+	mSweepStatus.curState = SweepStatus::INITIALIZING;
 	_sweep_status.write(mSweepStatus);
 
 	return true;
