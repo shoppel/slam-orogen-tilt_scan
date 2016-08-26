@@ -1,56 +1,41 @@
 name "tilt_scan"
 
-using_library 'envire'
 import_types_from 'base'
-import_types_from 'envire'
 import_types_from 'tilt_scanTypes.hpp'
 
 task_context "Task" do
-    property('max_scan_dist', 'double', 100).
-	doc 'maximum distance of scans which are considered for the pointcloud. in m'
 
-    property('config', 'tilt_scan/Configuration').
-	doc 'configuration of this module'
+	input_port('scan_samples', '/base/samples/LaserScan')
+	.needs_reliable_connection
+	.doc("Timestamped laser scans from line scanner.")
 
-    property('environment_debug_path', 'string').
-	doc 'if this property is set, the final environment will be written to the given file path.'
+	input_port('tilt_status_samples', 'base/samples/Joints')
+	.doc("Status feedback from tilt actuator.")
 
-    property('generate_point_cloud', 'bool', true).
-	doc 'if this property is set, a point cloud will be generated'
+	output_port('pointcloud', '/base/samples/Pointcloud')
+	.doc("Pointcloud merged from scans converted to body frame")
 
-    input_port('scan_samples', '/base/samples/LaserScan').
-	needs_reliable_connection.
-	doc 'timestamped laser scans'
+	output_port('tilt_cmd', 'base/commands/Joints')
+	.doc("Command for the tilt actuator.")
 
-    output_port('envire_events', ro_ptr('std/vector<envire/BinaryEvent>')).
-	doc 'binary events for the aggregated laser scans'
+	output_port('sweep_status', 'tilt_scan/SweepStatus')
+	.doc("Current status of the sweep.")
 
-    output_port('pointcloud', '/base/samples/Pointcloud').
-	doc 'pointcloud in the body frame'
+	operation('trigger_sweep')
+	.doc("Triggers a new sweep.")
 
-    output_port('tilt_cmd', 'base/commands/Joints').
-        doc 'output commands for the tilt joint'
+	property('config', 'tilt_scan/Configuration')
+	.doc("configuration of this module.")
 
-    output_port('sweep_status', 'tilt_scan/SweepStatus').
-        doc 'current status of the sweep'
+	transformer do
+		max_latency( 0.2 )
 
-    input_port "tilt_status_samples", "base/samples/Joints"
+		transformation("laser", "odometry")	
+		transformation("odometry", "body")
 
-    operation("triggerSweep").
-        doc("Triggers a new sweep")
+		align_port("scan_samples", 0.02)
+	end
 
-    
-    transformer do
-	max_latency( 0.2 )
-
-	transformation("laser", "body")	
-	transformation("body", "odometry")
-	transformation("lower_dynamixel", "body")
-
-	align_port("scan_samples", 0.02) 
-    end
-
-    port_driven
-    needs_configuration
+	port_driven("scan_samples")
+	needs_configuration
 end
-
