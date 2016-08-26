@@ -51,12 +51,9 @@ void Task::checkTiltStatus()
 			mSweepStatus.curState = SweepStatus::REACHED_UP_POSITION;
 		}else
 		{
-			if(mTrigger)
-				_tilt_cmd.write( mTiltUpCommand );
-			else
-				mTrigger = false;
-			return;
+			_tilt_cmd.write( mTiltUpCommand );
 		}
+		return;
 	}
 	
 	// Reached upper end point
@@ -177,12 +174,9 @@ bool Task::startHook()
 	if (! TaskBase::startHook())
 		return false;
 
-	//drive initially to up position
-	mTrigger = true;
+	mTrigger = false;
 	mSweepStatus.counter = 0;
 	mSweepStatus.curState = SweepStatus::INITIALIZING;
-	_sweep_status.write(mSweepStatus);
-
 	return true;
 }
 
