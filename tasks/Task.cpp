@@ -160,11 +160,11 @@ void Task::scan_samplesTransformerCallback(const base::Time &ts, const base::sam
 
 bool Task::configureHook()
 {
-    if (! TaskBase::configureHook())
-        return false;
+	if (! TaskBase::configureHook())
+		return false;
 
-    mConfiguration = _config.get();
-    mSweepStatus.sourceName = mConfiguration.sweep_servo_name;
+	mConfiguration = _config.get();
+	mSweepStatus.sourceName = mConfiguration.sweep_servo_name;
 	
 	base::JointState state;	
 	state.position = mConfiguration.sweep_angle_max;
@@ -176,7 +176,7 @@ bool Task::configureHook()
 	state.speed = mConfiguration.sweep_velocity_down;
 	mTiltDownCommand.names.push_back( mConfiguration.sweep_servo_name );
 	mTiltDownCommand.elements.push_back( state );
-    return true;
+	return true;
 }
 
 bool Task::startHook()
