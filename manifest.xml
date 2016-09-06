@@ -5,7 +5,7 @@
   <author>Jakob Schwendner</author>
   <author>Sebastian Kasperski</author>
 
-  <depend package="base/types" />
+  <depend package="base/orogen/types" />
   <depend package="drivers/orogen/transformer" />
   
   <tags>needs_opt</tags>

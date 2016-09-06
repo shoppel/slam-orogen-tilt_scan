@@ -48,7 +48,15 @@ void Task::checkTiltStatus()
 	{
 		if(fabs(jointState.position - mConfiguration.sweep_angle_max) < 0.1)
 		{
-			mSweepStatus.curState = SweepStatus::REACHED_UP_POSITION;
+			if(mConfiguration.mode == Configuration::CONTINUOUS_SWEEPING)
+			{
+				_tilt_cmd.write( mTiltDownCommand );
+				mSweepStatus.curState = SweepStatus::SWEEPING_DOWN;
+				mPointcloud.points.clear();
+			}else
+			{
+				mSweepStatus.curState = SweepStatus::REACHED_UP_POSITION;
+			}
 		}else
 		{
 			_tilt_cmd.write( mTiltUpCommand );
@@ -65,6 +73,7 @@ void Task::checkTiltStatus()
 			{
 				sendPointcloud();
 			}
+			mPointcloud.points.clear();
 			_tilt_cmd.write( mTiltDownCommand );
 			mSweepStatus.curState = SweepStatus::SWEEPING_DOWN;
 		}else
@@ -87,6 +96,7 @@ void Task::checkTiltStatus()
 	if((mSweepStatus.curState == SweepStatus::REACHED_UP_POSITION) && mTrigger)
 	{
 		mTrigger = false;
+		mPointcloud.points.clear();
 		_tilt_cmd.write( mTiltDownCommand );
 		mSweepStatus.curState = SweepStatus::SWEEPING_DOWN;
 	}
@@ -150,11 +160,11 @@ void Task::scan_samplesTransformerCallback(const base::Time &ts, const base::sam
 
 bool Task::configureHook()
 {
-    if (! TaskBase::configureHook())
-        return false;
+	if (! TaskBase::configureHook())
+		return false;
 
-    mConfiguration = _config.get();
-    mSweepStatus.sourceName = mConfiguration.sweep_servo_name;
+	mConfiguration = _config.get();
+	mSweepStatus.sourceName = mConfiguration.sweep_servo_name;
 	
 	base::JointState state;	
 	state.position = mConfiguration.sweep_angle_max;
@@ -166,7 +176,7 @@ bool Task::configureHook()
 	state.speed = mConfiguration.sweep_velocity_down;
 	mTiltDownCommand.names.push_back( mConfiguration.sweep_servo_name );
 	mTiltDownCommand.elements.push_back( state );
-    return true;
+	return true;
 }
 
 bool Task::startHook()
