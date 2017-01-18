@@ -4,6 +4,8 @@
 #include <base/Pose.hpp>
 #include <stdint.h>
 
+#include <vector>
+
 namespace tilt_scan
 {
 	struct Configuration
@@ -15,6 +17,8 @@ namespace tilt_scan
 		sweep_angle_max(1.0),
 		sweep_velocity_up(2.0),
 		sweep_velocity_down(0.5),
+		sweep_servo_name(),
+		sweep_servo_names(),
 		sweep_back_and_forth(false)
 		{}
 
@@ -43,6 +47,12 @@ namespace tilt_scan
 
 		/** name of the servo to sweep */
 		std::string sweep_servo_name;
+                
+                /** 
+                 * Allows to specify several servos which should receive the tilt_cmd.
+                 * Replaces sweep_servo_name if used.
+                 */
+                std::vector<std::string> sweep_servo_names;
 
 		/** also take a pointcloud while sweeping up */
 		bool sweep_back_and_forth;

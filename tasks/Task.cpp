@@ -42,7 +42,7 @@ void Task::checkTiltStatus()
 		LOG_WARN("Could not get joint status from tilt unit.");
 		return;
 	}
-	
+		
 	// Initialized to up posiition
 	if((mSweepStatus.curState == SweepStatus::INITIALIZING))
 	{
@@ -59,6 +59,7 @@ void Task::checkTiltStatus()
 			}
 		}else
 		{
+                        
 			_tilt_cmd.write( mTiltUpCommand );
 		}
 		return;
@@ -166,16 +167,37 @@ bool Task::configureHook()
 	mConfiguration = _config.get();
 	mSweepStatus.sourceName = mConfiguration.sweep_servo_name;
 	
+        // List of servo names replaces mConfiguration.sweep_servo_name if used.
+        std::vector<std::string> servo_names = mConfiguration.sweep_servo_names;
+        
 	base::JointState state;	
 	state.position = mConfiguration.sweep_angle_max;
 	state.speed = mConfiguration.sweep_velocity_up;
-	mTiltUpCommand.names.push_back( mConfiguration.sweep_servo_name );
-	mTiltUpCommand.elements.push_back( state );
-	
+        
+        if(servo_names.size() == 0) {
+            mTiltUpCommand.names.push_back( mConfiguration.sweep_servo_name );
+            mTiltUpCommand.elements.push_back( state );
+        } else {
+            std::vector<std::string>::iterator it = servo_names.begin();
+            for(; it != servo_names.end(); it++) {
+                mTiltUpCommand.names.push_back(*it);
+                mTiltUpCommand.elements.push_back(state);
+            }
+        }
+       
 	state.position = mConfiguration.sweep_angle_min;
 	state.speed = mConfiguration.sweep_velocity_down;
-	mTiltDownCommand.names.push_back( mConfiguration.sweep_servo_name );
-	mTiltDownCommand.elements.push_back( state );
+        
+        if(servo_names.size() == 0) {
+            mTiltDownCommand.names.push_back( mConfiguration.sweep_servo_name );
+            mTiltDownCommand.elements.push_back( state );
+        } else {
+            std::vector<std::string>::iterator it = servo_names.begin();
+            for(; it != servo_names.end(); it++) {
+                mTiltDownCommand.names.push_back(*it);
+                mTiltDownCommand.elements.push_back(state);
+            }
+        }
 	return true;
 }
 
